@@ -65,6 +65,6 @@ const recoverSecret2 = recoverSecret(cid2, share2);
 console.log(`recoverSecret1: ${recoverSecret1}`);
 console.log(`recoverSecret2: ${recoverSecret2}\n`);
 
-console.log('recoverSecret ED25519 match: ',
+console.log('recoverSecret match: ',
   (key === recoverSecret1) && (key === recoverSecret2));
 //////////////////////////////////////////////////////////////////////
