@@ -3,8 +3,6 @@ const bs58 = require('bs58')
 const btoa = require('btoa');
 const atob = require('atob');
 
-const OFFSET = 15;
-
 const key = crypto.randomBytes(32).toString('base64');
 console.log(`key: ${key}\n`);
 
@@ -21,41 +19,42 @@ const pin = bs58.encode(crypto
                           .digest())
               .substring(0, 6);
 console.log(`pin: ${pin}\n`)
-
-// TODO: add modulo to equaltion
-// TODO: Use block calcution instaed of calculate by digit  
+ 
 // Create Sub Share
 // Modified Polynomial Equation: 2 shares (cid, share) -> Linear
 // x = 0: Key
 // x = 1: Citizen ID
 // x = 2: Share
-// y posible range: [-15, 18]
-const createSubShares = (subSecret, subCid) =>
+const createSubShares = (subSecret, cid) =>
                           [1,2].map((x) =>
-                            ((x) * (subCid - subSecret)) + subSecret); 
+                            ((x) * (cid - subSecret)) + subSecret); 
 
 // Create Share from Key & CID
 // Calculate Share digit by digit
 const createShares = (secret, cid) => {
   const secretsHex = Buffer.from(secret, 'base64').toString('hex');
-  const subSecretsHex = secretsHex.split('');
-  const subPadCID = subSecretsHex.map((_, index) => +(cid[index % cid.length]));
-   // pad CID to have digit equal to secret e.g. 1100607404359 => 110060740435911006074043591100607404359
-  const subShares = subSecretsHex.map((s, index) => {
-                      const [cid, share] = createSubShares(parseInt(s, 16), subPadCID[index])
-                      // console.log(cid, share)
-                      return String.fromCharCode(share + OFFSET); // convert to positive value, TODO: find others solution?
-                    });
+  const subSecretsHex = secretsHex.match(/.{1,8}/g); // split to 8 digits array
 
-  return btoa(subShares.join(''));
+  const subShares = subSecretsHex.map((s, index) => {
+    console.log(parseInt(s, 16));
+    const [_, share] = createSubShares(parseInt(s, 16), cid)
+
+    return btoa(share.toString(16)); // 8 hex string -> 16 base64 string
+  });
+
+  return subShares.join('');
 }
 
 // Generate Key from CID & share
 const recoverSecret = (cid, share) => {
-  const subShares = atob(share).split('')
-  const key = subShares.map((s, index) =>
-                ((+(cid[index  % cid.length]) * 2) + ((s.charCodeAt() - OFFSET) * (-1)))
-                  .toString(16));
+  const subShares = share.match(/.{1,16}/g) // 16 base64 string -> 8 hex string
+
+  const key = subShares.map((s, index) => {
+    let sHex = atob(s);
+    let sInt = parseInt(sHex, 16);
+
+    return ((cid * 2) + ((sInt) * (-1))).toString(16).padStart(8, '0');
+  })
 
   return Buffer.from(key.join(''), 'hex').toString('base64');
 }
@@ -73,9 +72,3 @@ console.log(`recoverSecret2: ${recoverSecret2}\n`);
 
 console.log('recoverSecret match: ', (key === recoverSecret1) && (key === recoverSecret2));
 //////////////////////////////////////////////////////////////////////
-
-// create share
-// base64 -> Hex -> Char -> base64
-
-// recover key
-// base64 -> Char -> Hex -> Base64
