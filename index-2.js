@@ -36,7 +36,7 @@ const createShares = (secret, cid) => {
   const subSecretsHex = secretsHex.match(/.{1,8}/g); // split to 8 digits array
 
   const subShares = subSecretsHex.map((s, index) => {
-    console.log(parseInt(s, 16));
+    // console.log(parseInt(s, 16));
     const [_, share] = createSubShares(parseInt(s, 16), cid)
 
     return btoa(share.toString(16)); // 8 hex string -> 16 base64 string
